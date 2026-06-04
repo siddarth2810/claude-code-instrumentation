@@ -51,6 +51,7 @@ type PreToolUseHookInput struct {
 	BaseHookInput
 	HookEventName EventName `json:"hook_event_name"`
 	ToolName      string    `json:"tool_name"`
+	ToolInput     json.RawMessage `json:"tool_input"`
 	ToolUseID     string    `json:"tool_use_id"`
 }
 
