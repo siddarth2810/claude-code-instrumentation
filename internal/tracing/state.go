@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"sync"
 
-	"claude-instrumentation/internal/hooks"
+	"claude-code-instrumentation/internal/hooks"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -152,7 +152,7 @@ func (t *TraceState) PopAgentSpan(agentId string) (trace.Span, bool) {
 
 func RecordHook(state *TraceState, input hooks.HookInput) error {
 	sessionID := input.GetBaseInput().SessionID
-	tracer := otel.Tracer("claude-instrumentation")
+	tracer := otel.Tracer("claude-code-instrumentation")
 
 	switch input.GetEventName() {
 	case hooks.EventSessionStart:

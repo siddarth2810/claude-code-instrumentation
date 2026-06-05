@@ -12,8 +12,8 @@ import (
 	"syscall"
 	"time"
 
-	"claude-instrumentation/internal/hooks"
-	"claude-instrumentation/internal/tracing"
+	"claude-code-instrumentation/internal/hooks"
+	"claude-code-instrumentation/internal/tracing"
 )
 
 func main() {

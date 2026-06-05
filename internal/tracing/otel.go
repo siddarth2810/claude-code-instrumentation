@@ -24,7 +24,7 @@ func InitTracerProvider(ctx context.Context, endpoint string) (*sdktrace.TracerP
 		resource.Default(),
 		resource.NewWithAttributes(
 			"",
-			attribute.String("service.name", "claude-instrumentation"),
+			attribute.String("service.name", "claude-code-instrumentation"),
 		),
 	)
 	if err != nil {

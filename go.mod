@@ -1,4 +1,4 @@
-module claude-instrumentation
+module claude-code-instrumentation
 
 go 1.25.0
 

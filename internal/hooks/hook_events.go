@@ -49,10 +49,10 @@ type SessionStartHookInput struct {
 // Input data for PreToolUse hook events
 type PreToolUseHookInput struct {
 	BaseHookInput
-	HookEventName EventName `json:"hook_event_name"`
-	ToolName      string    `json:"tool_name"`
+	HookEventName EventName       `json:"hook_event_name"`
+	ToolName      string          `json:"tool_name"`
 	ToolInput     json.RawMessage `json:"tool_input"`
-	ToolUseID     string    `json:"tool_use_id"`
+	ToolUseID     string          `json:"tool_use_id"`
 }
 
 // PostToolUseHookInput is the input for PostToolUse hook events.
@@ -157,5 +157,3 @@ type PermissionRequestHookInput struct {
 	ToolInput             json.RawMessage `json:"tool_input"`
 	PermissionSuggestions json.RawMessage `json:"permission_suggestions,omitempty"` // NotRequired
 }
-
-
