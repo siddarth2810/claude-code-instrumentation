@@ -30,6 +30,18 @@ func run(ctx context.Context) error {
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
+	tracerProvider, err := tracing.InitTracerProvider(ctx, "localhost:4318")
+	if err != nil {
+		return err
+	}
+	defer func() {
+		shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		defer shutdownCancel()
+		if err := tracerProvider.Shutdown(shutdownCtx); err != nil {
+			log.Printf("could not shut down tracer provider: %v", err)
+		}
+	}()
+
 	httpServer := &http.Server{
 		Addr:    ":10987",
 		Handler: NewHandler(),
