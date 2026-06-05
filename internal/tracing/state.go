@@ -1,5 +1,7 @@
 package tracing
 
+import "claude-instrumentation/internal/hooks"
+
 // hook events are not one single request, they arrive in HTTP calls.
 // To build a trace tree from those disconnected events we need a state
 
@@ -99,4 +101,38 @@ func (t *TraceState) PopAgentSpan(agentId string) (string, bool) {
 		delete(t.agentContexts, agentId)
 	}
 	return span, ok
+}
+
+func RecordHook(state *TraceState, input hooks.HookInput) error {
+	sessionID := input.GetBaseInput().SessionID
+
+	switch input.GetEventName() {
+	case hooks.EventSessionStart:
+		state.SetSessionAttrs(sessionID, "session-context", "session-span")
+
+	case hooks.EventUserPromptSubmit:
+		state.SetTurnAttrs(sessionID, "turn-context", "turn-span")
+
+	case hooks.EventPreToolUse:
+		preToolUse, ok := input.(hooks.PreToolUseHookInput)
+		if !ok {
+			return hooks.ErrInvalidHookInput
+		}
+		state.SetToolSpan(preToolUse.ToolUseID, "tool-span")
+
+	case hooks.EventPostToolUse:
+		postToolUse, ok := input.(hooks.PostToolUseHookInput)
+		if !ok {
+			return hooks.ErrInvalidHookInput
+		}
+		state.PopToolSpan(postToolUse.ToolUseID)
+
+	case hooks.EventStop:
+		state.PopTurnSpan(sessionID)
+
+	case hooks.EventSessionEnd:
+		state.PopSessionSpan(sessionID)
+	}
+
+	return nil
 }

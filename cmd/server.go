@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"claude-instrumentation/internal/hooks"
+	"claude-instrumentation/internal/tracing"
 )
 
 func main() {
@@ -54,38 +55,47 @@ func run(ctx context.Context) error {
 }
 
 func NewHandler() http.Handler {
+	traceState := tracing.NewTraceState()
 	mux := http.NewServeMux()
 	mux.HandleFunc("/", health)
-	mux.HandleFunc("/hooks", handleHooks)
+	mux.HandleFunc("/hooks", handleHooks(traceState))
 	return mux
 }
+
 func health(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("got /health \n")
 	io.WriteString(w, "Hello, from server!\n")
 }
 
-func handleHooks(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
+func handleHooks(traceState *tracing.TraceState) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
 
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		http.Error(w, "could not read request body", http.StatusBadRequest)
-		return
-	}
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			http.Error(w, "could not read request body", http.StatusBadRequest)
+			return
+		}
 
-	input, err := hooks.DecodeHookInput(body)
-	if err != nil {
-		http.Error(w, "invalid hook input", http.StatusBadRequest)
-		return
-	}
+		input, err := hooks.DecodeHookInput(body)
+		if err != nil {
+			http.Error(w, "invalid hook input", http.StatusBadRequest)
+			return
+		}
 
-	log.Printf("received hook event: %s", input.GetEventName())
+		if err := tracing.RecordHook(traceState, input); err != nil {
+			http.Error(w, "could not record hook", http.StatusBadRequest)
+			return
+		}
 
-	w.Header().Set("Content-Type", "application/json")
-	if err := json.NewEncoder(w).Encode(map[string]bool{"recorded": true}); err != nil {
-		log.Printf("could not write response: %v", err)
+		log.Printf("received hook event: %s", input.GetEventName())
+
+		w.Header().Set("Content-Type", "application/json")
+		if err := json.NewEncoder(w).Encode(map[string]bool{"recorded": true}); err != nil {
+			log.Printf("could not write response: %v", err)
+		}
 	}
 }
