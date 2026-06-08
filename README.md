@@ -49,6 +49,9 @@ This starts three background services:
 - **OpenTelemetry Collector** — receives trace data
 - **Tempo** — stores the traces
 - **Grafana** — lets you view them at [localhost:3000](http://localhost:3000)
+  
+<img width="1561" height="901" alt="screenshot-20260605-120232Z-selected" src="https://github.com/user-attachments/assets/db8ae015-bb27-4924-8b0a-706b4a1423af" />
+
 
 ### 3. Start the Go server
 
