@@ -1,173 +1,88 @@
 # Claude Code Instrumentation
 
-Claude Code Instrumentation is a local tracing bridge for Claude Code.
+Watch what Claude Code is doing — in real time — through visual traces in your browser.
 
-It receives Claude Code hook events over HTTP.
-It turns those events into OpenTelemetry traces.
-It sends the traces to an OpenTelemetry Collector.
-The collector sends them to Grafana Tempo.
-You can inspect the traces in Grafana.
+---
 
-## What It Runs
+## What It Does
 
-The app has four local parts.
+Every time Claude Code takes an action (runs a tool, reads a file, etc.), this app captures that event and turns it into a visual timeline you can explore in Grafana.
 
-- `cmd/server.go` starts the Go HTTP server.
-- The server listens on `http://localhost:10987`.
-- `POST /hooks` receives Claude Code hook events.
-- The server exports traces to `localhost:4318`.
-- Docker Compose runs the collector, Tempo, and Grafana.
-
-## Requirements
-
-Install these first.
-
-- Go
-- Docker
-- Docker Compose
-- Claude Code (works with Ollama)
-
-Check Go with this command.
-
-```bash
-go version
+**The flow:**
+```
+Claude Code → Go Server (port 10987) → OpenTelemetry Collector → Tempo → Grafana
 ```
 
-Check Docker with this command.
+---
 
-```bash
-docker --version
+## Before You Start
+
+Install these four things:
+
+| Tool | What it is |
+|---|---|
+| **Go** | Runs the hook server |
+| **Docker + Docker Compose** | Runs the tracing stack |
+| **Claude Code** | The AI coding tool being monitored |
+
+---
+
+## Setup (One Time)
+
+### 1. Tell Claude Code to send events here
+
+Create this file inside your project:
+
+```
+.claude/settings.json
 ```
 
-Check Compose with this command.
+Add the hook configuration pointing to `http://localhost:10987/hooks`. Start a new Claude Code session after saving — type `/hooks` to confirm it loaded.
 
-```bash
-docker compose version
-```
-
-## Run The App
-
-### 1. Start The Trace Stack
-
-Start the OpenTelemetry Collector, Tempo, and Grafana.
+### 2. Start the tracing stack
 
 ```bash
 docker compose up -d
 ```
 
-This starts these services.
+This starts three background services:
+- **OpenTelemetry Collector** — receives trace data
+- **Tempo** — stores the traces
+- **Grafana** — lets you view them at [localhost:3000](http://localhost:3000)
 
-- OpenTelemetry Collector on `localhost:4318`
-- Tempo on `localhost:3200`
-- Grafana on `localhost:3000`
-
-Check that the containers are running.
-
-```bash
-docker compose ps
-```
-
-### 2. Start The Go Server
-
-Run the hook server.
+### 3. Start the Go server
 
 ```bash
 go run cmd/server.go
 ```
 
-Keep this terminal open.
-The server stops when you press `Ctrl+C`.
+The server is now listening for Claude Code events at `localhost:10987`.
 
-The server exposes these routes.
+---
 
-- `GET /` returns a small health response.
-- `POST /hooks` receives hook events.
+## Viewing Traces
 
-Check the health route from another terminal.
-
-```bash
-curl http://localhost:10987/
-```
-
-You should see this response.
-
-```text
-Hello, from server!
-```
-
-## Connect Claude Code
-
-Claude Code must send hook events to this server.
-Claude Code supports HTTP hooks.
-HTTP hooks send the event JSON as a POST body.
-
-Create or edit this file in the project where you run Claude Code.
-
-```text
-.claude/settings.local.json
-```
-
-
-Start a Claude Code session after this file is saved.
-Use Claude Code normally.
-Each supported hook event is sent to the Go server.
-Use `/hooks` inside Claude Code to verify the loaded hooks.
-
-## View Traces In Grafana
-
-Open Grafana.
-
-```text
-http://localhost:3000
-```
-
-Use the default Grafana login if you have not changed it.
-
-```text
-username: admin
-password: admin
-```
-
-Grafana may ask you to set a new password.
-
-Add Tempo as a data source.
-
-1. Open `Connections`.
-2. Open `Data sources`.
-3. Click `Add data source`.
-4. Choose `Tempo`.
-5. Set the URL to `http://tempo:3200`.
-6. Click `Save & test`.
-
-Open `Explore`.
-Select the Tempo data source.
-Search for traces from `claude-code-instrumentation`.
+1. Open **[localhost:3000](http://localhost:3000)** — log in with `admin` / `admin`
+2. Go to **Connections → Data sources → Add data source**
+3. Choose **Tempo**, set the URL to `http://tempo:3200`, and click **Save & test**
+4. Open **Explore**, select the Tempo data source, and search:
 
 ```
 {.service.name="claude-code-instrumentation"}
 ```
 
-## Stop The App
+You'll see a timeline of everything Claude Code did.
 
-Stop the Go server with `Ctrl+C`.
+---
 
-Stop the Docker services with this command.
+## Stopping
 
 ```bash
+# Stop everything
 docker compose down
-```
 
-Remove the Tempo volume only if you want to delete saved traces.
-
-```bash
+# Stop everything AND delete saved traces
 docker compose down -v
 ```
 
-## Run Tests
-
-Run all tests with this command.
-
-```bash
-go test ./...
-```
-
+Stop the Go server anytime with `Ctrl+C`.
